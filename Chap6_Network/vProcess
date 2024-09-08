@@ -1,0 +1,20 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/signal.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+int sigset_t;  
+static void printSigset(sigset_t *set);
+static void sigHandler(int);
+
+int main(int argc, char **argv) {
+    sigset_t pset;
+    sigemptyset(&pset);
+    sigaddset(&pset, SIGQUIT);
+    sigaddset(&pset, SIGRTMIN);
+    sigprocmask(SIG_BLOCK, &pset, NULL);
+
+}
