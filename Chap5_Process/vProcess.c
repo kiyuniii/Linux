@@ -1,12 +1,10 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/signal.h>
+#define _POSIX_SOURCE
+#define _POSIX_C_SOURCE 1
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
-int sigset_t;  
 static void printSigset(sigset_t *set);
 static void sigHandler(int);
 

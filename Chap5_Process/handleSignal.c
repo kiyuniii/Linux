@@ -1,3 +1,9 @@
+/* 출처: https://stackoverflow.com/questions/30283507/what-does-the-compilation-error-sig-block-undeclared-mean */
+#define _POSIX_SOURCE
+#define _POSIX_C_SOURCE 1
+/* 출처: https://github.com/open-mpi/ompi/issues/3812 */
+#define NSIG _NSIG
+
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
@@ -77,3 +83,4 @@ static void printSigset(sigset_t *set) {
     }
     putchar('\n');
 }
+ 
