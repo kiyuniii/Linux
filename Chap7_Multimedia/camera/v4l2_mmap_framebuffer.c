@@ -117,8 +117,9 @@ static int read_frame(int fd)
 
 static void mainloop(int fd)
 {
-    unsigned int count = 100;
-    while(count-- > 0) {
+    //unsigned int count = 100;
+    //while(count-- > 0) {
+    while(1) {
         for(;;) {
             fd_set fds;
             struct timeval tv;
