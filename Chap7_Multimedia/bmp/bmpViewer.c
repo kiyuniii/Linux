@@ -19,6 +19,11 @@ typedef unsigned char ubyte;
 /* 함수 선언 */
 extern int readBmp(char *filename, ubyte **pData, int *cols, int *rows, int *color);
 
+/* 24bit -> 16bit */
+extern inline unsigned short makepixel(unsigned char r, unsigned char g, unsigned char b) {
+    return (r >> 3) << 11 | (g >> 2) << 5 | (b >> 3);
+}
+
 /* 메인 함수 */
 int main(int argc, char **argv) {
     /* 변수 선언 */
@@ -72,10 +77,14 @@ int main(int argc, char **argv) {
             g = LIMIT_UBYTE(pData[k + x*color/8 + 1]); // 초록색 값 추출
             r = LIMIT_UBYTE(pData[k + x*color/8 + 2]); // 빨간색 값 추출
 
-            *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 0) = b;
+            unsigned short pixel = makepixel(r, g, b); // 24비트를 16비트로 변환
+            *(unsigned short *)(pBmpData + x*2 + total_y) = pixel; // 16비트 픽셀 저장
+
+
+/*             *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 0) = b;
             *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 1) = g;
             *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 2) = r;
-            *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 3) = a; // 알파 채널 설정
+            *(pBmpData + x*vinfo.bits_per_pixel/8 + total_y + 3) = a; // 알파 채널 설정 */
         }
     }
 
