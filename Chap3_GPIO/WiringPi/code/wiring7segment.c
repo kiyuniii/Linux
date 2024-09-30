@@ -48,13 +48,13 @@ int main(int argc, char **argv) {
 }
 
 /* anode type
- * a    2  
- * b    3
- * c    4
- * d    17
- * e    14
- * f    15
- * g    18
+ * a    8  
+ * b    9
+ * c    7
+ * d    0
+ * e    15
+ * f    16
+ * g    1
  * vcc
  * */
 
