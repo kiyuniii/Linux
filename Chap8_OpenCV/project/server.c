@@ -11,11 +11,12 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-
 #include <linux/fb.h>
-
 #include <asm/types.h>               /* for videodev2.h */
 #include <linux/videodev2.h>
+
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #define FBDEV       "/dev/fb0"      /* 프레임 버퍼를 위한 디바이스 파일 */
 #define VIDEODEV    "/dev/video0"
@@ -28,7 +29,7 @@ struct buffer {
     size_t length;
 };
 
-static short *fbp   	      = NULL;         /* 프레임버퍼의 MMAP를 위한 변수 */
+static short *fbp   	      = NULL; /* 프레임버퍼의 MMAP를 위한 변수 */
 struct buffer *buffers        = NULL;
 static unsigned int n_buffers = 0;
 static struct fb_var_screeninfo vinfo;                   /* 프레임버퍼의 정보 저장을 위한 구조체 */
@@ -52,47 +53,9 @@ extern inline int clip(int value, int min, int max)
     return(value > max ? max : value < min ? min : value);
 }
 
-static void process_image(const void *p)
-{
-    unsigned char* in =(unsigned char*)p;
-    int width = WIDTH;
-    int height = HEIGHT;
-    int istride = WIDTH*2;          /* 이미지의 폭을 넘어가면 다음 라인으로 내려가도록 설정 */
-    int x, y, j;
-    int y0, u, y1, v, r, g, b;
-    unsigned short pixel;
-    long location = 0;
-    for(y = 0; y < height; ++y) {
-        for(j = 0, x = 0; j < vinfo.xres * 2; j += 4, x += 2) {
-            if(j >= width*2) {                 /* 현재의 화면에서 이미지를 넘어서는 빈 공간을 처리 */
-                 location++; location++;
-                 continue;
-            }
-            /* YUYV 성분을 분리 */
-            y0 = in[j];
-            u = in[j + 1] - 128;
-            y1 = in[j + 2];
-            v = in[j + 3] - 128;
 
-            /* YUV를 RGB로 전환 */
-            r = clip((298 * y0 + 409 * v + 128) >> 8, 0, 255);
-            g = clip((298 * y0 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-            b = clip((298 * y0 + 516 * u + 128) >> 8, 0, 255);
-            pixel =((r>>3)<<11)|((g>>2)<<5)|(b>>3);                 /* 16비트 컬러로 전환 */
-            fbp[location++] = pixel;
 
-            /* YUV를 RGB로 전환 */
-            r = clip((298 * y1 + 409 * v + 128) >> 8, 0, 255);
-            g = clip((298 * y1 - 100 * u - 208 * v + 128) >> 8, 0, 255);
-            b = clip((298 * y1 + 516 * u + 128) >> 8, 0, 255);
-            pixel =((r>>3)<<11)|((g>>2)<<5)|(b>>3);                 /* 16비트 컬러로 전환 */
-            fbp[location++] = pixel;
-        };
-        in += istride;
-    };
-}
-
-static int read_frame(int fd)
+static int read_frame(int fd, int csock)
 {
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
@@ -107,7 +70,13 @@ static int read_frame(int fd)
         }
     }
 
-    process_image(buffers[buf.index].start);
+    //process_image(buffers[buf.index].start); -> client에서 수행
+    /* TCP로 전송 */
+    int bytes_sent = write(csock, buffers[buf.index].start, buffers[buf.index].length);
+    if(bytes_sent < 0) {
+        perror("TCP error");
+        return -1;
+    }
 
     if(-1 == xioctl(fd, VIDIOC_QBUF, &buf))
         mesg_exit("VIDIOC_QBUF");
@@ -115,7 +84,7 @@ static int read_frame(int fd)
     return 1;
 }
 
-static void mainloop(int fd)
+static void mainloop(int fd, int csock)
 {
     //unsigned int count = 100;
     //while(count-- > 0) {
@@ -140,7 +109,7 @@ static void mainloop(int fd)
                 exit(EXIT_FAILURE);
             }
 
-            if(read_frame(fd)) break;
+            if(read_frame(fd, csock)) break;
         }
     }
 }
@@ -266,7 +235,36 @@ static void init_device(int fd)
 int main(int argc, char **argv)
 {
     int fbfd = -1;              /* 프레임버퍼의 파일 디스크립터 */
-    int camfd = -1;		/* 카메라의 파일 디스크립터 */
+    int camfd = -1;		        /* 카메라의 파일 디스크립터 */
+    int ssock, csock;
+
+    struct sockaddr_in servaddr, cliaddr;
+    socklen_t clen = sizeof(cliaddr);
+
+    /* socket() */
+    if ((ssock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket()");
+        return -1;
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(5100);
+
+    /* bind() */
+    if (bind(ssock, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        perror("bind()");
+        return -1;
+    }
+    /* listen() */
+    if (listen(ssock, 8) < 0) {
+        perror("listen()");
+        return -1;
+    }
+
+
+
 
     /* 프레임버퍼 열기 */
     fbfd = open(FBDEV, O_RDWR);
@@ -300,10 +298,19 @@ int main(int argc, char **argv)
     }
 
     init_device(camfd);
-
     start_capturing(camfd);
 
-    mainloop(camfd);
+    /* accept */
+    while(1) {
+        csock = accept(ssock, (struct sockaddr *)&cliaddr, &clen);
+        if(csock < 0) {
+            perror("accept()");
+            continue;
+        }
+        mainloop(camfd, csock); //클라이언트에 프레임 전송
+        close(csock);
+    }
+
 
     /* 캡쳐 중단 */
     enum v4l2_buf_type type;

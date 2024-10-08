@@ -1,0 +1,8 @@
+
+
+camera -> video4Linux -> socket/bind/listen/accept -> write(한 번)
+
+TCP
+
+read(여러 번) -> YUYV2RGB16 -> framebuffer
+    - process_image
