@@ -1,0 +1,1 @@
+savedcmd_/home/kiyun/vLinux/Chap12_Kernel/hello_module.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/kiyun/vLinux/Chap12_Kernel/hello_module.ko /home/kiyun/vLinux/Chap12_Kernel/hello_module.o /home/kiyun/vLinux/Chap12_Kernel/hello_module.mod.o;  true

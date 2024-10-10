@@ -1,0 +1,1 @@
+savedcmd_/home/kiyun/vLinux/Chap12_Kernel/hello_module.mod := printf '%s\n'   hello_module.o | awk '!x[$$0]++ { print("/home/kiyun/vLinux/Chap12_Kernel/"$$0) }' > /home/kiyun/vLinux/Chap12_Kernel/hello_module.mod

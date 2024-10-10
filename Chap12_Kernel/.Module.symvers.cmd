@@ -1,0 +1,1 @@
+savedcmd_/home/kiyun/vLinux/Chap12_Kernel/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /home/kiyun/vLinux/Chap12_Kernel/Module.symvers -T /home/kiyun/vLinux/Chap12_Kernel/modules.order -i Module.symvers -e 
