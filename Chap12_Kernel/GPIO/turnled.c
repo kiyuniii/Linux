@@ -4,10 +4,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#if 0
-#define BCM_IO_BASE 0x20000000
-#define BCM_IO_BASE 0x3F000000
-#else
 #define BCM_IO_BASE 0xFE000000
 
 #endif
